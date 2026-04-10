@@ -1,0 +1,11 @@
+{
+  "imports": {
+    "hono": "https://deno.land/x/hono@v3.11.7/mod.ts",
+    "hono/": "https://deno.land/x/hono@v3.11.7/",
+    "openai": "https://esm.sh/openai@4.28.0",
+    "drizzle-orm": "https://esm.sh/drizzle-orm@0.30.1",
+    "drizzle-orm/": "https://esm.sh/drizzle-orm@0.30.1/",
+    "postgres": "https://esm.sh/postgres@3.4.3",
+    "@db/": "./db/"
+  }
+}

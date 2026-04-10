@@ -1,0 +1,832 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Sthenos Fitness App API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: profile
+    description: User profile and settings
+  - name: exercises
+    description: Exercise tracking
+  - name: meals
+    description: Meal and nutrition tracking
+  - name: daily-reports
+    description: Daily calorie reports
+  - name: weight-checks
+    description: Weekly weight check-ins
+  - name: ai
+    description: AI-powered analysis
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      summary: Get user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createProfile
+      tags: [profile]
+      summary: Create user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProfileBody"
+      responses:
+        "201":
+          description: Profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+    patch:
+      operationId: updateProfile
+      tags: [profile]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileBody"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  /exercises:
+    get:
+      operationId: listExercises
+      tags: [exercises]
+      summary: List exercises for a date
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of exercises
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exercise"
+    post:
+      operationId: createExercise
+      tags: [exercises]
+      summary: Log an exercise
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExerciseBody"
+      responses:
+        "201":
+          description: Exercise created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exercise"
+
+  /exercises/{id}:
+    patch:
+      operationId: updateExercise
+      tags: [exercises]
+      summary: Update an exercise
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateExerciseBody"
+      responses:
+        "200":
+          description: Exercise updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exercise"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteExercise
+      tags: [exercises]
+      summary: Delete an exercise
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /meals:
+    get:
+      operationId: listMeals
+      tags: [meals]
+      summary: List meals for a date
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of meals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Meal"
+    post:
+      operationId: createMeal
+      tags: [meals]
+      summary: Log a meal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMealBody"
+      responses:
+        "201":
+          description: Meal created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meal"
+
+  /meals/{id}:
+    patch:
+      operationId: updateMeal
+      tags: [meals]
+      summary: Update a meal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMealBody"
+      responses:
+        "200":
+          description: Meal updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meal"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteMeal
+      tags: [meals]
+      summary: Delete a meal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /daily-reports:
+    get:
+      operationId: getDailyReport
+      tags: [daily-reports]
+      summary: Get daily calorie report for a date
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Daily report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReport"
+
+  /daily-reports/history:
+    get:
+      operationId: getDailyReportHistory
+      tags: [daily-reports]
+      summary: Get daily reports for the last N days (for charts)
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of daily reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyReport"
+
+  /weight-checks:
+    get:
+      operationId: listWeightChecks
+      tags: [weight-checks]
+      summary: List all weight check-ins
+      responses:
+        "200":
+          description: List of weight checks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeightCheck"
+    post:
+      operationId: createWeightCheck
+      tags: [weight-checks]
+      summary: Record a weight check-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWeightCheckBody"
+      responses:
+        "201":
+          description: Weight check recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeightCheck"
+
+  /weight-checks/pending:
+    get:
+      operationId: getPendingWeightCheck
+      tags: [weight-checks]
+      summary: Check if a weekly weight check is pending
+      responses:
+        "200":
+          description: Pending status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PendingWeightCheck"
+
+  /ai/analyze-food:
+    post:
+      operationId: analyzeFoodImage
+      tags: [ai]
+      summary: Analyze a food photo and return description and estimated calories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeFoodImageBody"
+      responses:
+        "200":
+          description: Food analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoodAnalysisResult"
+
+  /ai/daily-summary:
+    get:
+      operationId: getAiDailySummary
+      tags: [ai]
+      summary: Get AI-generated daily summary with insights
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: AI daily summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiDailySummary"
+
+  /ai/diet-plan:
+    get:
+      operationId: getAiDietPlan
+      tags: [ai]
+      summary: Get AI-generated personalized diet plan based on user profile and IMC
+      responses:
+        "200":
+          description: AI diet plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiDietPlan"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Profile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        age:
+          type: ["integer", "null"]
+        gender:
+          type: ["string", "null"]
+        weightKg:
+          type: ["number", "null"]
+        heightCm:
+          type: ["number", "null"]
+        goal:
+          type: ["string", "null"]
+        activityLevel:
+          type: ["string", "null"]
+        bmi:
+          type: ["number", "null"]
+        bmr:
+          type: ["number", "null"]
+        tdee:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+
+    CreateProfileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: ["integer", "null"]
+        gender:
+          type: ["string", "null"]
+        weightKg:
+          type: ["number", "null"]
+        heightCm:
+          type: ["number", "null"]
+        goal:
+          type: ["string", "null"]
+        activityLevel:
+          type: ["string", "null"]
+      required:
+        - name
+
+    UpdateProfileBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        age:
+          type: ["integer", "null"]
+        gender:
+          type: ["string", "null"]
+        weightKg:
+          type: ["number", "null"]
+        heightCm:
+          type: ["number", "null"]
+        goal:
+          type: ["string", "null"]
+        activityLevel:
+          type: ["string", "null"]
+
+    Exercise:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        durationMinutes:
+          type: ["integer", "null"]
+        sets:
+          type: ["integer", "null"]
+        reps:
+          type: ["integer", "null"]
+        weightKg:
+          type: ["number", "null"]
+        caloriesBurned:
+          type: number
+        notes:
+          type: ["string", "null"]
+        date:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - type
+        - caloriesBurned
+        - date
+        - createdAt
+
+    CreateExerciseBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        durationMinutes:
+          type: ["integer", "null"]
+        sets:
+          type: ["integer", "null"]
+        reps:
+          type: ["integer", "null"]
+        weightKg:
+          type: ["number", "null"]
+        caloriesBurned:
+          type: number
+        notes:
+          type: ["string", "null"]
+        date:
+          type: string
+      required:
+        - name
+        - type
+        - caloriesBurned
+        - date
+
+    UpdateExerciseBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        type:
+          type: ["string", "null"]
+        durationMinutes:
+          type: ["integer", "null"]
+        sets:
+          type: ["integer", "null"]
+        reps:
+          type: ["integer", "null"]
+        weightKg:
+          type: ["number", "null"]
+        caloriesBurned:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+
+    Meal:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: ["string", "null"]
+        caloriesKcal:
+          type: number
+        imageBase64:
+          type: ["string", "null"]
+        aiAnalyzed:
+          type: boolean
+        date:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - category
+        - caloriesKcal
+        - aiAnalyzed
+        - date
+        - createdAt
+
+    CreateMealBody:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: ["string", "null"]
+        caloriesKcal:
+          type: number
+        imageBase64:
+          type: ["string", "null"]
+        aiAnalyzed:
+          type: boolean
+        date:
+          type: string
+      required:
+        - name
+        - category
+        - caloriesKcal
+        - date
+
+    UpdateMealBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        caloriesKcal:
+          type: ["number", "null"]
+        aiAnalyzed:
+          type: ["boolean", "null"]
+
+    DailyReport:
+      type: object
+      properties:
+        date:
+          type: string
+        totalCaloriesBurned:
+          type: number
+        totalCaloriesConsumed:
+          type: number
+        netCalories:
+          type: number
+        exerciseCount:
+          type: integer
+        mealCount:
+          type: integer
+        breakfastCalories:
+          type: number
+        lunchCalories:
+          type: number
+        dinnerCalories:
+          type: number
+        snackCalories:
+          type: number
+      required:
+        - date
+        - totalCaloriesBurned
+        - totalCaloriesConsumed
+        - netCalories
+        - exerciseCount
+        - mealCount
+        - breakfastCalories
+        - lunchCalories
+        - dinnerCalories
+        - snackCalories
+
+    WeightCheck:
+      type: object
+      properties:
+        id:
+          type: integer
+        weightKg:
+          type: number
+        date:
+          type: string
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - weightKg
+        - date
+        - createdAt
+
+    CreateWeightCheckBody:
+      type: object
+      properties:
+        weightKg:
+          type: number
+        date:
+          type: string
+        notes:
+          type: ["string", "null"]
+      required:
+        - weightKg
+        - date
+
+    PendingWeightCheck:
+      type: object
+      properties:
+        isPending:
+          type: boolean
+        lastCheckDate:
+          type: ["string", "null"]
+        daysSinceLastCheck:
+          type: ["integer", "null"]
+      required:
+        - isPending
+
+    AnalyzeFoodImageBody:
+      type: object
+      properties:
+        imageBase64:
+          type: string
+        mealCategory:
+          type: string
+      required:
+        - imageBase64
+
+    FoodAnalysisResult:
+      type: object
+      properties:
+        foodName:
+          type: string
+        description:
+          type: string
+        estimatedCalories:
+          type: number
+        confidence:
+          type: string
+        ingredients:
+          type: array
+          items:
+            type: string
+      required:
+        - foodName
+        - description
+        - estimatedCalories
+        - confidence
+        - ingredients
+
+    AiDailySummary:
+      type: object
+      properties:
+        date:
+          type: string
+        summary:
+          type: string
+        calorieBalance:
+          type: number
+        insights:
+          type: array
+          items:
+            type: string
+        recommendation:
+          type: string
+      required:
+        - date
+        - summary
+        - calorieBalance
+        - insights
+        - recommendation
+
+    AiDietPlan:
+      type: object
+      properties:
+        bmi:
+          type: ["number", "null"]
+        bmiCategory:
+          type: string
+        targetCalories:
+          type: number
+        breakfastSuggestions:
+          type: array
+          items:
+            type: string
+        lunchSuggestions:
+          type: array
+          items:
+            type: string
+        dinnerSuggestions:
+          type: array
+          items:
+            type: string
+        snackSuggestions:
+          type: array
+          items:
+            type: string
+        generalAdvice:
+          type: string
+        weeklyPlan:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayPlan"
+      required:
+        - bmiCategory
+        - targetCalories
+        - breakfastSuggestions
+        - lunchSuggestions
+        - dinnerSuggestions
+        - snackSuggestions
+        - generalAdvice
+        - weeklyPlan
+
+    DayPlan:
+      type: object
+      properties:
+        day:
+          type: string
+        meals:
+          type: array
+          items:
+            type: string
+        totalCalories:
+          type: number
+      required:
+        - day
+        - meals
+        - totalCalories

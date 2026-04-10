@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Sthenos"
+version = "1.0.0"
+id = "artifacts/sthenos"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19982
+
+[services.development]
+run = "pnpm --filter @workspace/sthenos run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/sthenos", "run", "build" ]
+publicDir = "artifacts/sthenos/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19982"
+BASE_PATH = "/"

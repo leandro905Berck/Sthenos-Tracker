@@ -5,14 +5,15 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { Dumbbell, Mail, Lock, UserPlus, LogIn, ArrowRight } from 'lucide-react'
+import { Dumbbell, Mail, Lock, UserPlus, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
@@ -27,12 +28,13 @@ export default function AuthPage() {
         if (error) throw error
         toast({ title: 'Bem-vindo de volta!', description: 'Login realizado com sucesso.' })
       } else {
+        if (password !== confirmPassword) {
+          throw new Error('As senhas não coincidem.')
+        }
+        
         const { error } = await supabase.auth.signUp({ 
           email, 
-          password,
-          options: {
-            data: { full_name: name }
-          }
+          password
         })
         if (error) throw error
         toast({ 
@@ -83,28 +85,7 @@ export default function AuthPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAuth} className="space-y-4">
-              <AnimatePresence mode="wait">
-                {!isLogin && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-2"
-                  >
-                    <Label htmlFor="name">Nome Completo</Label>
-                    <div className="relative">
-                      <Input 
-                        id="name" 
-                        placeholder="Seu nome" 
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="bg-black/20 border-white/10"
-                        required={!isLogin}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Campos Removidos: Nome agora é solicitado no Onboarding */}
 
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
@@ -128,24 +109,68 @@ export default function AuthPage() {
                   <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
                   <Input 
                     id="password" 
-                    type="password" 
+                    type={showPassword ? "text" : "password"} 
                     placeholder="••••••••" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 bg-black/20 border-white/10"
+                    className="pl-10 pr-10 bg-black/20 border-white/10"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-slate-500 hover:text-primary transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
-              <button 
+              <AnimatePresence>
+                {!isLogin && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2"
+                  >
+                    <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
+                      <Input 
+                        id="confirmPassword" 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="••••••••" 
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="pl-10 bg-black/20 border-white/10"
+                        required={!isLogin}
+                      />
+                    </div>
+                    {confirmPassword && password !== confirmPassword && (
+                      <p className="text-xs text-destructive mt-1">As senhas não coincidem.</p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <Button 
                 type="submit" 
-                className="w-full h-12 bg-[#F97316] hover:bg-[#F97316]/90 text-white font-bold rounded-md transition-all shadow-lg"
-                disabled={loading}
-                onClick={() => console.log("Botão clicado!")}
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold transition-all shadow-lg hover:shadow-primary/20"
+                disabled={loading || (!isLogin && password !== confirmPassword)}
               >
-                {loading ? "Aguarde..." : (isLogin ? "Entrar" : "Cadastrar")}
-              </button>
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Aguarde...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {isLogin ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+                    <span>{isLogin ? 'Entrar' : 'Cadastrar'}</span>
+                  </div>
+                )}
+              </Button>
             </form>
 
             <div className="mt-6 text-center">

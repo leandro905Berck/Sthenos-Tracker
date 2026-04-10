@@ -23,9 +23,11 @@ const openai = new OpenAI({
 })
 
 // Middleware de Autenticação Supabase
-// Extrai o user_id do JWT enviado no header Authorization
 app.use('*', async (c, next) => {
-  if (c.req.path === '/api/health') return await next()
+  // Ignora verificação para preflight (CORS) e rota de saúde
+  if (c.req.method === 'OPTIONS' || c.req.path === '/api/health') {
+    return await next()
+  }
   
   const authHeader = c.req.header('Authorization')
   if (!authHeader) return c.json({ error: 'Não autorizado' }, 401)

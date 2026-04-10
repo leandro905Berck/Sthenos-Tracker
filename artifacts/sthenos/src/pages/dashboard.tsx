@@ -39,12 +39,12 @@ export default function Dashboard() {
   const tdee = profile?.tdee ? Number(profile.tdee) : null;
   const dailyGoal = tdee ? calcDailyGoal(tdee, profile?.goal ?? null) : null;
 
-  const remaining = dailyGoal != null ? dailyGoal - consumed : null;
+  const remaining = dailyGoal != null ? dailyGoal - net : null;
   const progressPct =
-    dailyGoal != null && dailyGoal > 0
-      ? Math.min(100, Math.round((consumed / dailyGoal) * 100))
+    dailyGoal != null && dailyGoal > 0 && net >= 0
+      ? Math.min(100, Math.round((net / dailyGoal) * 100))
       : 0;
-  const isOver = dailyGoal != null && consumed > dailyGoal;
+  const isOver = dailyGoal != null && net > dailyGoal;
 
   const goalLabel =
     profile?.goal === "perda de peso"
@@ -108,7 +108,7 @@ export default function Dashboard() {
               </div>
               <div className="flex justify-between mt-1.5">
                 <span className="text-[11px] text-muted-foreground">
-                  Consumido: <span className="text-foreground font-medium">{consumed.toLocaleString("pt-BR")}</span> kcal
+                  Saldo (Líquido): <span className="text-foreground font-medium">{net.toLocaleString("pt-BR")}</span> kcal
                 </span>
                 <span
                   className={`text-[11px] font-medium ${

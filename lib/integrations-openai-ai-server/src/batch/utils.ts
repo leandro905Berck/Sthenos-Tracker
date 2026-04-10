@@ -71,7 +71,8 @@ export async function batchProcess<T, R>(
             onProgress?.(completed, items.length, item);
             return result;
           } catch (error: unknown) {
-            throw error;
+              throw error;
+            }
           }
         },
         { retries, minTimeout, maxTimeout, factor: 2 }

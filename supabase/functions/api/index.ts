@@ -3,7 +3,8 @@ import { cors } from 'https://deno.land/x/hono@v3.11.7/middleware.ts'
 import OpenAI from 'https://esm.sh/openai@4.28.0'
 import { drizzle } from 'https://esm.sh/drizzle-orm@0.30.1/postgres-js'
 import postgres from 'https://esm.sh/postgres@3.4.3'
-import { eq, and, desc, sql } from 'https://esm.sh/drizzle-orm@0.30.1'
+import { eq, and, desc, sql as dSql } from 'https://esm.sh/drizzle-orm@0.30.1'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8'
 import * as schema from './db/schema.ts'
 
 const app = new Hono()
@@ -17,11 +18,31 @@ app.get('/api/health', (c) => c.json({ status: 'ok' }))
 // 3. Sub-App para as rotas da API (Protegidas)
 const api = new Hono()
 
-// Middleware de Autenticação Supabase
+// Configuração inicial de clients
+const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY') })
+const pgClient = postgres(Deno.env.get('SUPABASE_DB_URL')!)
+const db = drizzle(pgClient)
+
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') || '',
+  Deno.env.get('SUPABASE_ANON_KEY') || ''
+)
+
+// Middleware de Autenticação Supabase Manual
 api.use('*', async (c, next) => {
-  // O Supabase injeta o ID do usuário no header x-auth-user-id se o JWT for válido
-  const userId = c.req.header('x-auth-user-id') || 'guest'
-  c.set('userId', userId)
+  const authHeader = c.req.header('Authorization')
+  if (!authHeader) {
+    return c.json({ error: 'Missing Authorization header' }, 401)
+  }
+  
+  const token = authHeader.replace('Bearer ', '').trim()
+  const { data: { user }, error } = await supabase.auth.getUser(token)
+  
+  if (error || !user) {
+    return c.json({ error: 'Unauthorized: Invalid JWT' }, 401)
+  }
+
+  c.set('userId', user.id)
   await next()
 })
 
@@ -232,7 +253,7 @@ Deno.serve(async (req) => {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE, PATCH',
-        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
         'Access-Control-Max-Age': '86400',
       },
       status: 200

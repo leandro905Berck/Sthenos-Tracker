@@ -1,4 +1,4 @@
-import { useListMeals, useCreateMeal, useUpdateMeal, useDeleteMeal, useAnalyzeFoodImage, getListMealsQueryKey } from "@workspace/api-client-react";
+import { useListMeals, useCreateMeal, useUpdateMeal, useDeleteMeal, useAnalyzeFoodImage, getListMealsQueryKey } from "@/lib/custom-queries";
 import { getTodayDateString } from "@/lib/date-utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ export default function Meals() {
     lanche: "Lanche",
   };
 
-  const totalCalories = meals?.reduce((acc, m) => acc + Number(m.caloriesKcal), 0) ?? 0;
+  const totalCalories = meals?.reduce((acc: number, m: any) => acc + Number(m.caloriesKcal), 0) ?? 0;
 
   return (
     <div className="p-4 space-y-4 pb-24">
@@ -89,9 +89,9 @@ export default function Meals() {
       ) : (
         <div className="space-y-6">
           {Object.entries(categories).map(([catKey, catName]) => {
-            const catMeals = meals?.filter(m => m.category === catKey) || [];
+            const catMeals = meals?.filter((m: any) => m.category === catKey) || [];
             if (catMeals.length === 0) return null;
-            const totalCatCals = catMeals.reduce((acc, m) => acc + Number(m.caloriesKcal), 0);
+            const totalCatCals = catMeals.reduce((acc: number, m: any) => acc + Number(m.caloriesKcal), 0);
 
             return (
               <div key={catKey} className="space-y-2">
@@ -99,7 +99,7 @@ export default function Meals() {
                   <h2 className="font-semibold text-sm text-foreground/80">{catName}</h2>
                   <span className="text-xs font-bold text-muted-foreground">{totalCatCals.toLocaleString("pt-BR")} kcal</span>
                 </div>
-                {catMeals.map((meal) => (
+                {catMeals.map((meal: any) => (
                   <Card key={meal.id} className="bg-card border-border overflow-hidden">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex-1 min-w-0 pr-4">
@@ -226,7 +226,7 @@ function AddMealModal({ date }: { date: string }) {
     try {
       const compressed = await compressImageToBase64(file, 800);
       analyzeImage.mutate({ data: { imageBase64: compressed, mealCategory: category } }, {
-        onSuccess: (result) => {
+        onSuccess: (result: any) => {
           if (result.foodName && result.foodName !== "Alimento não identificado") {
             setName(result.foodName);
             setCalories(String(result.estimatedCalories));

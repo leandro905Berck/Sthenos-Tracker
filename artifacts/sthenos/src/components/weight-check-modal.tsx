@@ -1,4 +1,4 @@
-import { useGetPendingWeightCheck, useCreateWeightCheck, getGetPendingWeightCheckQueryKey, useGetProfile } from "@workspace/api-client-react";
+import { useGetPendingWeightCheck, useCreateWeightCheck, getGetPendingWeightCheckQueryKey, useGetProfile } from "@/lib/custom-queries";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

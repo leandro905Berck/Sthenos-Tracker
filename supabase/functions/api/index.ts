@@ -219,8 +219,27 @@ api.delete('/weight-checks/:id', async (c) => {
   return c.body(null, 204)
 })
 
-// Montar o sub-app /api no app principal
+// 4. Conectar Rotas e Iniciar Servidor Deno com Handler de CORS Manual
 app.route('/api', api)
 
-Deno.serve(app.fetch)
+Deno.serve(async (req) => {
+  const { method } = req
+
+  // Tratamento manual de preflight (OPTIONS)
+  // Isso garante que o navegador receba um OK 200 imediato para prosseguir
+  if (method === 'OPTIONS') {
+    return new Response('ok', {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE, PATCH',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Max-Age': '86400',
+      },
+      status: 200
+    })
+  }
+
+  // Passa todos os outros tipos de pedido (GET, POST, etc) para o Hono
+  return app.fetch(req)
+})
 

@@ -1,4 +1,4 @@
-import { useGetAiDietPlan, getGetAiDietPlanQueryKey } from "@workspace/api-client-react";
+import { useGetAiDietPlan, getGetAiDietPlanQueryKey } from "@/lib/custom-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Brain, Info, Utensils, Target, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

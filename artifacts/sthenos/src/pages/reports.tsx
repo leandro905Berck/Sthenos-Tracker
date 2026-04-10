@@ -1,4 +1,4 @@
-import { useGetDailyReportHistory, useListWeightChecks, getGetDailyReportHistoryQueryKey, getListWeightChecksQueryKey } from "@workspace/api-client-react";
+import { useGetDailyReportHistory, useListWeightChecks, getGetDailyReportHistoryQueryKey, getListWeightChecksQueryKey } from "@/lib/custom-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { format, parseISO } from "date-fns";

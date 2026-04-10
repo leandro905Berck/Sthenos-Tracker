@@ -4,7 +4,7 @@ import {
   useUpdateExercise,
   useDeleteExercise,
   getListExercisesQueryKey,
-} from "@workspace/api-client-react";
+} from "@/lib/custom-queries";
 import { getTodayDateString } from "@/lib/date-utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export default function Exercises() {
     });
   };
 
-  const totalCalories = exercises?.reduce((sum, e) => sum + Number(e.caloriesBurned), 0) ?? 0;
+  const totalCalories = exercises?.reduce((sum: number, e: any) => sum + Number(e.caloriesBurned), 0) ?? 0;
 
   return (
     <div className="p-4 space-y-4 pb-24">
@@ -75,7 +75,7 @@ export default function Exercises() {
         </div>
       ) : (
         <div className="space-y-3">
-          {exercises?.map((ex) => (
+          {exercises?.map((ex: any) => (
             <Card key={ex.id} className="bg-card border-border overflow-hidden">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">

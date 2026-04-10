@@ -5,7 +5,7 @@ import {
   useListWeightChecks,
   useCreateWeightCheck,
   getListWeightChecksQueryKey,
-} from "@workspace/api-client-react";
+} from "@/lib/custom-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -223,7 +223,11 @@ export default function Profile() {
       </Link>
 
       <Button variant="ghost" className="w-full h-12 text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-2 border border-border/50"
-        onClick={() => signOut({ redirectUrl: "/" })}>
+        onClick={() => {
+          signOut().then(() => {
+            window.location.href = "/";
+          });
+        }}>
         <LogOut className="w-4 h-4" />
         Sair da conta
       </Button>
@@ -280,7 +284,7 @@ function WeightSection() {
           <div className="text-center text-muted-foreground text-sm py-4">Nenhuma medição registrada ainda.</div>
         ) : (
           <>
-            {displayed.map((c, i) => {
+            {displayed.map((c: any, i: number) => {
               const trend = getTrend(i);
               return (
                 <div key={c.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">

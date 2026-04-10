@@ -5,7 +5,7 @@ import {
   getGetDailyReportQueryKey,
   getGetAiDailySummaryQueryKey,
   getGetProfileQueryKey,
-} from "@workspace/api-client-react";
+} from "@/lib/custom-queries";
 import { getTodayDateString } from "@/lib/date-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";

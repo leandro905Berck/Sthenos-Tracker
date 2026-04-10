@@ -1,4 +1,4 @@
-import { useGetProfile, useCreateProfile } from "@workspace/api-client-react";
+import { useGetProfile, useCreateProfile } from "@/lib/custom-queries";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
-import { getGetProfileQueryKey } from "@workspace/api-client-react";
+import { getGetProfileQueryKey } from "@/lib/custom-queries";
 
 const schema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),

@@ -49,7 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     isLoading,
-    signOut
+    signOut,
+    getToken
   }
 
   return (

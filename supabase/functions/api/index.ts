@@ -8,53 +8,26 @@ import * as schema from './db/schema.ts'
 
 const app = new Hono()
 
-// Middleware de CORS Global (deve ser o primeiro)
+// 1. CORS Global - Deve ser o primeiro de todos
 app.use('*', cors())
 
-// Conexão com Banco de Dados
-const DATABASE_URL = Deno.env.get('DATABASE_URL')
-if (!DATABASE_URL) throw new Error('DATABASE_URL is required')
-const client = postgres(DATABASE_URL)
-const db = drizzle(client, { schema })
+// 2. Rota de Saúde (Pública)
+app.get('/api/health', (c) => c.json({ status: 'ok' }))
 
-// IA (OpenAI)
-const openai = new OpenAI({
-  apiKey: Deno.env.get('OPENAI_API_KEY'),
-})
+// 3. Sub-App para as rotas da API (Protegidas)
+const api = new Hono()
 
 // Middleware de Autenticação Supabase
-app.use('*', async (c, next) => {
-  // Ignora verificação para preflight (CORS) e rota de saúde
-  if (c.req.method === 'OPTIONS' || c.req.path === '/api/health') {
-    return await next()
-  }
-  
-  // No Supabase, as rotas começam com /api porque o app Hono é montado assim
-  // Porém agora estamos usando rotas diretas como /api/profile
-  
-  const authHeader = c.req.header('Authorization')
-  if (!authHeader) return c.json({ error: 'Não autorizado' }, 401)
-  
-  try {
-    const token = authHeader.replace('Bearer ', '')
-    // No Supabase Edge Functions, podemos pegar o usuário diretamente do context
-    // ou decodificar o JWT. O Supabase já faz a verificação básica se configurado.
-    // Para simplificar, vamos assumir que o frontend envia o JWT e usaremos
-    // a lib do Supabase para extrair o usuário com segurança se necessário.
-    
-    // NOTA: Em funções reais do Supabase, o UID vem no header 'x-auth-user-id' 
-    // se o JWT for válido.
-    const userId = c.req.header('x-auth-user-id') || 'guest' // Fallback para desenvolvimento
-    c.set('userId', userId)
-    await next()
-  } catch (err) {
-    return c.json({ error: 'Token inválido' }, 401)
-  }
+api.use('*', async (c, next) => {
+  // O Supabase injeta o ID do usuário no header x-auth-user-id se o JWT for válido
+  const userId = c.req.header('x-auth-user-id') || 'guest'
+  c.set('userId', userId)
+  await next()
 })
 
-// --- ROTAS DE IA ---
+// --- ROTAS DA API ---
 
-app.post('/ai/analyze-food', async (c) => {
+api.post('/ai/analyze-food', async (c) => {
   const { imageBase64 } = await c.req.json()
   const prompt = `Você é um nutricionista especialista. Analise a imagem de alimento fornecida e responda APENAS em JSON válido com a estrutura:
   {
@@ -73,7 +46,7 @@ app.post('/ai/analyze-food', async (c) => {
   return c.json(JSON.parse(response.choices[0]?.message?.content || '{}'))
 })
 
-app.post('/ai/estimate-calories', async (c) => {
+api.post('/ai/estimate-calories', async (c) => {
   const { foodName } = await c.req.json()
   const prompt = `Você é nutricionista. Estime as calorias do alimento informado (porção padrão brasileira) e responda APENAS em JSON válido:
   {
@@ -91,7 +64,7 @@ app.post('/ai/estimate-calories', async (c) => {
   return c.json(JSON.parse(response.choices[0]?.message?.content || '{}'))
 })
 
-app.get('/ai/daily-summary', async (c) => {
+api.get('/ai/daily-summary', async (c) => {
   const userId = c.get('userId')
   const date = c.req.query('date') || new Date().toISOString().split('T')[0]
 
@@ -116,9 +89,7 @@ app.get('/ai/daily-summary', async (c) => {
   return c.json({ date, calorieBalance: net, ...aiResult })
 })
 
-// --- ROTAS DE REFEIÇÕES ---
-
-app.get('/meals', async (c) => {
+api.get('/meals', async (c) => {
   const userId = c.get('userId')
   const date = c.req.query('date')
   const conditions = [eq(schema.mealsTable.userId, userId)]
@@ -128,16 +99,14 @@ app.get('/meals', async (c) => {
   return c.json(meals.map(m => ({ ...m, caloriesKcal: Number(m.caloriesKcal) })))
 })
 
-app.post('/meals', async (c) => {
+api.post('/meals', async (c) => {
   const userId = c.get('userId')
   const data = await c.req.json()
   const [meal] = await db.insert(schema.mealsTable).values({ ...data, userId }).returning()
   return c.json({ ...meal, caloriesKcal: Number(meal.caloriesKcal) }, 201)
 })
 
-// --- ROTAS DE EXERCÍCIOS ---
-
-app.get('/exercises', async (c) => {
+api.get('/exercises', async (c) => {
   const userId = c.get('userId')
   const date = c.req.query('date')
   const conditions = [eq(schema.exercisesTable.userId, userId)]
@@ -147,16 +116,14 @@ app.get('/exercises', async (c) => {
   return c.json(exercises.map(e => ({ ...e, caloriesBurned: Number(e.caloriesBurned) })))
 })
 
-app.post('/exercises', async (c) => {
+api.post('/exercises', async (c) => {
   const userId = c.get('userId')
   const data = await c.req.json()
   const [exercise] = await db.insert(schema.exercisesTable).values({ ...data, userId }).returning()
   return c.json({ ...exercise, caloriesBurned: Number(exercise.caloriesBurned) }, 201)
 })
 
-// --- ROTAS DE PERFIL ---
-
-app.get('/profile', async (c) => {
+api.get('/profile', async (c) => {
   const userId = c.get('userId')
   const [profile] = await db.select().from(schema.profilesTable).where(eq(schema.profilesTable.userId, userId)).limit(1)
   if (!profile) return c.json({ error: 'Perfil não encontrado' }, 404)
@@ -170,16 +137,21 @@ app.get('/profile', async (c) => {
   })
 })
 
-app.patch('/profile', async (c) => {
+api.post('/profile', async (c) => {
+  const userId = c.get('userId')
+  const data = await c.req.json()
+  const [profile] = await db.insert(schema.profilesTable).values({ ...data, userId }).returning()
+  return c.json(profile)
+})
+
+api.patch('/profile', async (c) => {
   const userId = c.get('userId')
   const data = await c.req.json()
   const [updated] = await db.update(schema.profilesTable).set(data).where(eq(schema.profilesTable.userId, userId)).returning()
   return c.json(updated)
 })
 
-// --- RELATÓRIOS DIÁRIOS ---
-
-app.get('/daily-reports', async (c) => {
+api.get('/daily-reports', async (c) => {
   const userId = c.get('userId')
   const dateStr = c.req.query('date') || new Date().toISOString().split('T')[0]
 
@@ -199,7 +171,7 @@ app.get('/daily-reports', async (c) => {
   })
 })
 
-app.get('/daily-reports/history', async (c) => {
+api.get('/daily-reports/history', async (c) => {
   const userId = c.get('userId')
   const days = parseInt(c.req.query('days') || '7', 10)
   const reports = []
@@ -227,27 +199,28 @@ app.get('/daily-reports/history', async (c) => {
   return c.json(reports)
 })
 
-// --- PESO (WEIGHT CHECKS) ---
-
-app.get('/weight-checks', async (c) => {
+api.get('/weight-checks', async (c) => {
   const userId = c.get('userId')
   const checks = await db.select().from(schema.weightChecksTable).where(eq(schema.weightChecksTable.userId, userId)).orderBy(desc(schema.weightChecksTable.date))
   return c.json(checks.map(ck => ({ ...ck, weightKg: Number(ck.weightKg) })))
 })
 
-app.post('/weight-checks', async (c) => {
+api.post('/weight-checks', async (c) => {
   const userId = c.get('userId')
   const data = await c.req.json()
   const [ck] = await db.insert(schema.weightChecksTable).values({ ...data, userId }).returning()
   return c.json({ ...ck, weightKg: Number(ck.weightKg) }, 201)
 })
 
-app.delete('/weight-checks/:id', async (c) => {
+api.delete('/weight-checks/:id', async (c) => {
   const userId = c.get('userId')
   const id = parseInt(c.req.param('id'), 10)
   await db.delete(schema.weightChecksTable).where(and(eq(schema.weightChecksTable.id, id), eq(schema.weightChecksTable.userId, userId)))
   return c.body(null, 204)
 })
+
+// Montar o sub-app /api no app principal
+app.route('/api', api)
 
 Deno.serve(app.fetch)
 

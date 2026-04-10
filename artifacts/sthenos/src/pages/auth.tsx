@@ -138,23 +138,14 @@ export default function AuthPage() {
                 </div>
               </div>
 
-              <Button 
+              <button 
                 type="submit" 
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold transition-all shadow-lg hover:shadow-primary/20"
+                className="w-full h-12 bg-[#F97316] hover:bg-[#F97316]/90 text-white font-bold rounded-md transition-all shadow-lg"
                 disabled={loading}
+                onClick={() => console.log("Botão clicado!")}
               >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Aguarde...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    {isLogin ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
-                    <span>{isLogin ? 'Entrar' : 'Cadastrar'}</span>
-                  </div>
-                )}
-              </Button>
+                {loading ? "Aguarde..." : (isLogin ? "Entrar" : "Cadastrar")}
+              </button>
             </form>
 
             <div className="mt-6 text-center">

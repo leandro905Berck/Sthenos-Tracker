@@ -6,9 +6,9 @@ import postgres from 'https://esm.sh/postgres@3.4.3'
 import { eq, and, desc, sql } from 'https://esm.sh/drizzle-orm@0.30.1'
 import * as schema from './db/schema.ts'
 
-const app = new Hono().basePath('/api')
+const app = new Hono()
 
-// Middleware de CORS
+// Middleware de CORS Global (deve ser o primeiro)
 app.use('*', cors())
 
 // Conexão com Banco de Dados
@@ -28,6 +28,9 @@ app.use('*', async (c, next) => {
   if (c.req.method === 'OPTIONS' || c.req.path === '/api/health') {
     return await next()
   }
+  
+  // No Supabase, as rotas começam com /api porque o app Hono é montado assim
+  // Porém agora estamos usando rotas diretas como /api/profile
   
   const authHeader = c.req.header('Authorization')
   if (!authHeader) return c.json({ error: 'Não autorizado' }, 401)

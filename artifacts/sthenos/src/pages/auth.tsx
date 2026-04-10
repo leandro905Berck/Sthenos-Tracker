@@ -18,6 +18,7 @@ export default function AuthPage() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("Iniciando autenticação...", { email, isLogin })
     setLoading(true)
 
     try {

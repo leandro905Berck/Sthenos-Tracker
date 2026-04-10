@@ -34,9 +34,12 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 // Configura o cliente de API para usar o Supabase Edge Functions
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+console.log("Supabase URL detectada:", supabaseUrl ? "Sim" : "Não");
+
 if (supabaseUrl) {
   // Ajusta a URL para apontar para o diretório de funções (/functions/v1)
   const apiUrl = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/api`;
+  console.log("Configurando Base URL da API:", apiUrl);
   setBaseUrl(apiUrl);
 }
 

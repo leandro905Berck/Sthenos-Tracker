@@ -99,6 +99,12 @@ function Router() {
       <Route path="/auth">
         {user ? <Redirect to="/" /> : <AuthPage />}
       </Route>
+      <Route path="/sign-up">
+        {user ? <Redirect to="/" /> : <AuthPage />}
+      </Route>
+      <Route path="/sign-in">
+        {user ? <Redirect to="/" /> : <AuthPage />}
+      </Route>
 
       {/* Main App */}
       <Route>

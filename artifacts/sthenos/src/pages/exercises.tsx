@@ -4,6 +4,7 @@ import {
   useUpdateExercise,
   useDeleteExercise,
   getListExercisesQueryKey,
+  useEstimateExerciseCalories,
 } from "@/lib/custom-queries";
 import { getTodayDateString } from "@/lib/date-utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -303,47 +304,40 @@ function ExerciseForm({
 }) {
   const [isEstimating, setIsEstimating] = useState(false);
   const { toast } = useToast();
-  const { getToken } = useAuth();
+  const estimateExerciseCalories = useEstimateExerciseCalories();
   const filteredTemplates = EXERCISE_TEMPLATES.filter((t) => t.type === type);
 
   const handleAiEstimate = useCallback(async () => {
     if (!customName.trim()) return;
     setIsEstimating(true);
-    try {
-      const token = await getToken();
-      const res = await fetch("/api/ai/estimate-exercise-calories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    estimateExerciseCalories.mutate(
+      {
+        exerciseName: customName.trim(),
+        type,
+        duration: duration ? Number(duration) : undefined,
+        sets: sets ? Number(sets) : undefined,
+        reps: reps ? Number(reps) : undefined,
+      },
+      {
+        onSuccess: (data: any) => {
+          if (data?.estimatedCalories > 0) {
+            onCaloriesChange(String(data.estimatedCalories));
+            toast({
+              title: "Calorias estimadas pela IA",
+              description: `${data.estimatedCalories} kcal — ${data.description || "Calculado via Gemini"}`,
+            });
+          } else {
+            toast({ title: "Não foi possível estimar", description: "Informe as calorias manualmente.", variant: "destructive" });
+          }
+          setIsEstimating(false);
         },
-        body: JSON.stringify({
-          exerciseName: customName.trim(),
-          type,
-          duration: duration ? Number(duration) : undefined,
-          sets: sets ? Number(sets) : undefined,
-          reps: reps ? Number(reps) : undefined,
-        }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-
-      if (data.estimatedCalories > 0) {
-        onCaloriesChange(String(data.estimatedCalories));
-        toast({
-          title: "Calorias estimadas pela IA",
-          description: `${data.estimatedCalories} kcal — ${data.description}`,
-        });
-      } else {
-        toast({ title: "Não foi possível estimar", description: "Informe as calorias manualmente.", variant: "destructive" });
+        onError: (err: any) => {
+          toast({ title: "Erro ao estimar calorias", description: err?.message || "Ocorreu um erro desconhecido.", variant: "destructive" });
+          setIsEstimating(false);
+        }
       }
-    } catch {
-      toast({ title: "Erro ao estimar calorias", variant: "destructive" });
-    } finally {
-      setIsEstimating(false);
-    }
-  }, [customName, type, duration, sets, reps, onCaloriesChange, toast, getToken]);
+    );
+  }, [customName, type, duration, sets, reps, onCaloriesChange, toast, estimateExerciseCalories]);
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 pt-2">

@@ -166,3 +166,10 @@ export const useEstimateCalories = () => {
       fetchWithAuth(`/ai/estimate-calories`, { method: "POST", body: JSON.stringify(data) }),
   });
 };
+
+export const useEstimateExerciseCalories = () => {
+  return useMutation({
+    mutationFn: (data: { exerciseName: string; type: string; duration?: number; sets?: number; reps?: number; }) =>
+      fetchWithAuth(`/ai/estimate-exercise-calories`, { method: "POST", body: JSON.stringify(data) }),
+  });
+};

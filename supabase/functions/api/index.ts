@@ -122,6 +122,34 @@ api.post('/ai/estimate-calories', async (c) => {
   }
 })
 
+api.post('/ai/estimate-exercise-calories', async (c) => {
+  const { exerciseName, type, duration, sets, reps } = await c.req.json()
+  const prompt = `Você é um personal trainer especialista. Estime as calorias gastas para o seguinte exercício e responda APENAS em JSON válido:
+  {
+    "estimatedCalories": número,
+    "description": "breve justificativa da estimativa"
+  }
+  Exercício: "${exerciseName}"
+  Tipo: ${type}
+  ${duration ? `Duração: ${duration} minutos` : ''}
+  ${sets && reps ? `Séries: ${sets}, Repetições: ${reps}` : ''}`;
+
+  try {
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash", 
+      generationConfig: { responseMimeType: "application/json" } 
+    });
+
+    const result = await model.generateContent(prompt);
+    const content = result.response.text();
+
+    return c.json(safeParseJSON(content))
+  } catch (error: any) {
+    console.error("Gemini Error in estimate-exercise-calories:", error?.message || error)
+    return c.json({ error: "Erro ao estimar calorias de exercício com IA.", details: error?.message || "Erro desconhecido" }, 500)
+  }
+})
+
 api.get('/ai/daily-summary', async (c) => {
   const userId = c.get('userId')
   const date = c.req.query('date') || new Date().toISOString().split('T')[0]

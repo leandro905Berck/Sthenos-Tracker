@@ -235,7 +235,7 @@ function AddMealModal({ date }: { date: string }) {
             toast({ title: "Não consegui identificar o alimento", description: "Digite o nome manualmente.", variant: "destructive" });
           }
         },
-        onError: () => toast({ title: "Erro na análise da foto", variant: "destructive" }),
+        onError: (err: any) => toast({ title: "Erro na análise da foto", description: err?.message || "Ocorreu um erro desconhecido.", variant: "destructive" }),
       });
     } catch {
       toast({ title: "Erro ao processar imagem", variant: "destructive" });
@@ -254,7 +254,7 @@ function AddMealModal({ date }: { date: string }) {
           toast({ title: "Calorias estimadas pela IA", description: `${data.estimatedCalories} kcal — ${data.description}` });
         }
       },
-      onError: () => toast({ title: "Erro ao estimar calorias", variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro ao estimar calorias", description: err?.message || "Ocorreu um erro desconhecido.", variant: "destructive" }),
     });
   }, [name, toast, estimateCalories]);
 
@@ -355,7 +355,7 @@ function EditMealModal({ meal, date, onClose }: { meal: Meal; date: string; onCl
           toast({ title: "Calorias estimadas pela IA", description: `${data.estimatedCalories} kcal` });
         }
       },
-      onError: () => toast({ title: "Erro ao estimar calorias", variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro ao estimar calorias", description: err?.message || "Ocorreu um erro desconhecido.", variant: "destructive" }),
     });
   }, [name, toast, estimateCalories]);
 

@@ -1,13 +1,13 @@
 import { Hono } from 'https://deno.land/x/hono@v3.11.7/mod.ts'
 import { cors } from 'https://deno.land/x/hono@v3.11.7/middleware.ts'
-import OpenAI from 'https://esm.sh/openai@4.28.0'
+import { GoogleGenerativeAI } from 'npm:@google/generative-ai'
 import { drizzle } from 'https://esm.sh/drizzle-orm@0.30.1/postgres-js'
 import postgres from 'https://esm.sh/postgres@3.4.3'
 import { eq, and, desc, sql as dSql } from 'https://esm.sh/drizzle-orm@0.30.1'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8'
 import * as schema from './db/schema.ts'
 
-// Strips markdown code fences OpenAI sometimes wraps JSON in
+// Strips markdown code fences if AI wraps JSON
 function safeParseJSON(raw: string | null | undefined): Record<string, unknown> {
   if (!raw) return {}
   const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
@@ -30,7 +30,7 @@ app.get('/api/health', (c) => c.json({ status: 'ok' }))
 const api = new Hono()
 
 // Configuração inicial de clients
-const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY') })
+const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || "")
 const pgClient = postgres(Deno.env.get('SUPABASE_DB_URL')!)
 const db = drizzle(pgClient)
 
@@ -71,14 +71,27 @@ api.post('/ai/analyze-food', async (c) => {
   }`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: imageBase64.startsWith("data:") ? imageBase64 : `data:image/jpeg;base64,${imageBase64}` } }] }],
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash", 
+      generationConfig: { responseMimeType: "application/json" } 
     });
 
-    return c.json(safeParseJSON(response.choices[0]?.message?.content))
+    const base64Data = imageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType: "image/jpeg"
+        }
+      }
+    ]);
+
+    const content = result.response.text();
+    return c.json(safeParseJSON(content))
   } catch (error: any) {
-    console.error("OpenAI Error in analyze-food:", error?.message || error)
+    console.error("Gemini Error in analyze-food:", error?.message || error)
     return c.json({ error: "Erro ao analisar o alimento com IA. Tente novamente mais tarde.", details: error?.message || "Erro desconhecido" }, 500)
   }
 })
@@ -94,14 +107,17 @@ api.post('/ai/estimate-calories', async (c) => {
   Alimento: "${foodName}"`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash", 
+      generationConfig: { responseMimeType: "application/json" } 
     });
 
-    return c.json(safeParseJSON(response.choices[0]?.message?.content))
+    const result = await model.generateContent(prompt);
+    const content = result.response.text();
+
+    return c.json(safeParseJSON(content))
   } catch (error: any) {
-    console.error("OpenAI Error in estimate-calories:", error?.message || error)
+    console.error("Gemini Error in estimate-calories:", error?.message || error)
     return c.json({ error: "Erro ao estimar calorias com IA.", details: error?.message || "Erro desconhecido" }, 500)
   }
 })
@@ -123,15 +139,18 @@ api.get('/ai/daily-summary', async (c) => {
   Responda em JSON: { "summary": "texto", "insights": ["i1", "i2"], "recommendation": "texto" }`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash", 
+      generationConfig: { responseMimeType: "application/json" } 
     });
 
-    const aiResult = safeParseJSON(response.choices[0]?.message?.content)
+    const result = await model.generateContent(prompt);
+    const content = result.response.text();
+
+    const aiResult = safeParseJSON(content)
     return c.json({ date, calorieBalance: net, ...aiResult })
   } catch (error: any) {
-    console.error("OpenAI Error in daily-summary:", error?.message || error)
+    console.error("Gemini Error in daily-summary:", error?.message || error)
     return c.json({
       date,
       calorieBalance: net,

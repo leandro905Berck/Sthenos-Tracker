@@ -7,6 +7,17 @@ import { eq, and, desc, sql as dSql } from 'https://esm.sh/drizzle-orm@0.30.1'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8'
 import * as schema from './db/schema.ts'
 
+// Strips markdown code fences OpenAI sometimes wraps JSON in
+function safeParseJSON(raw: string | null | undefined): Record<string, unknown> {
+  if (!raw) return {}
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    return {}
+  }
+}
+
 const app = new Hono()
 
 // 1. CORS Global - Deve ser o primeiro de todos
@@ -59,12 +70,17 @@ api.post('/ai/analyze-food', async (c) => {
     "ingredients": ["ingrediente1", "ingrediente2"]
   }`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: imageBase64.startsWith("data:") ? imageBase64 : `data:image/jpeg;base64,${imageBase64}` } }] }],
-  });
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: imageBase64.startsWith("data:") ? imageBase64 : `data:image/jpeg;base64,${imageBase64}` } }] }],
+    });
 
-  return c.json(JSON.parse(response.choices[0]?.message?.content || '{}'))
+    return c.json(safeParseJSON(response.choices[0]?.message?.content))
+  } catch (error: any) {
+    console.error("OpenAI Error in analyze-food:", error?.message || error)
+    return c.json({ error: "Erro ao analisar o alimento com IA. Tente novamente mais tarde.", details: error?.message || "Erro desconhecido" }, 500)
+  }
 })
 
 api.post('/ai/estimate-calories', async (c) => {
@@ -77,12 +93,17 @@ api.post('/ai/estimate-calories', async (c) => {
   }
   Alimento: "${foodName}"`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  return c.json(JSON.parse(response.choices[0]?.message?.content || '{}'))
+    return c.json(safeParseJSON(response.choices[0]?.message?.content))
+  } catch (error: any) {
+    console.error("OpenAI Error in estimate-calories:", error?.message || error)
+    return c.json({ error: "Erro ao estimar calorias com IA.", details: error?.message || "Erro desconhecido" }, 500)
+  }
 })
 
 api.get('/ai/daily-summary', async (c) => {
@@ -101,13 +122,24 @@ api.get('/ai/daily-summary', async (c) => {
   - Queimadas: ${totalBurned} kcal
   Responda em JSON: { "summary": "texto", "insights": ["i1", "i2"], "recommendation": "texto" }`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  const aiResult = JSON.parse(response.choices[0]?.message?.content || '{}')
-  return c.json({ date, calorieBalance: net, ...aiResult })
+    const aiResult = safeParseJSON(response.choices[0]?.message?.content)
+    return c.json({ date, calorieBalance: net, ...aiResult })
+  } catch (error: any) {
+    console.error("OpenAI Error in daily-summary:", error?.message || error)
+    return c.json({
+      date,
+      calorieBalance: net,
+      summary: "Não foi possível gerar um resumo de IA no momento.",
+      insights: ["A análise de IA está indisponível."],
+      recommendation: "Continue registrando suas refeições e exercícios!"
+    })
+  }
 })
 
 api.get('/meals', async (c) => {
@@ -224,6 +256,25 @@ api.get('/weight-checks', async (c) => {
   const userId = c.get('userId')
   const checks = await db.select().from(schema.weightChecksTable).where(eq(schema.weightChecksTable.userId, userId)).orderBy(desc(schema.weightChecksTable.date))
   return c.json(checks.map(ck => ({ ...ck, weightKg: Number(ck.weightKg) })))
+})
+
+api.get('/weight-checks/pending', async (c) => {
+  const userId = c.get('userId')
+  const [latest] = await db
+    .select()
+    .from(schema.weightChecksTable)
+    .where(eq(schema.weightChecksTable.userId, userId))
+    .orderBy(desc(schema.weightChecksTable.date))
+    .limit(1)
+
+  if (!latest) {
+    return c.json({ isPending: true, daysSinceLastCheck: null })
+  }
+
+  const lastDate = new Date(latest.date)
+  const today = new Date()
+  const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+  return c.json({ isPending: diffDays >= 7, daysSinceLastCheck: diffDays })
 })
 
 api.post('/weight-checks', async (c) => {

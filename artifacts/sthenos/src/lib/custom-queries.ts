@@ -60,7 +60,7 @@ export const getGetPendingWeightCheckQueryKey = () => ["weight-checks", "pending
 export const useGetPendingWeightCheck = (_options?: any) => {
   return useQuery({
     queryKey: getGetPendingWeightCheckQueryKey(),
-    queryFn: () => fetchWithAuth(`/weight-checks/pending`), // Mock endpoint or correct logic
+    queryFn: () => fetchWithAuth(`/weight-checks/pending`),
   });
 };
 
@@ -158,5 +158,11 @@ export const useDeleteMeal = () => {
 export const useAnalyzeFoodImage = () => {
   return useMutation({
     mutationFn: (data: any) => fetchWithAuth(`/ai/analyze-food`, { method: "POST", body: JSON.stringify(data.data) }),
+  });
+};
+export const useEstimateCalories = () => {
+  return useMutation({
+    mutationFn: (data: { foodName: string }) =>
+      fetchWithAuth(`/ai/estimate-calories`, { method: "POST", body: JSON.stringify(data) }),
   });
 };

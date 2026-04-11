@@ -1,4 +1,4 @@
-import { useListMeals, useCreateMeal, useUpdateMeal, useDeleteMeal, useAnalyzeFoodImage, getListMealsQueryKey } from "@/lib/custom-queries";
+import { useListMeals, useCreateMeal, useUpdateMeal, useDeleteMeal, useAnalyzeFoodImage, useEstimateCalories, getListMealsQueryKey } from "@/lib/custom-queries";
 import { getTodayDateString } from "@/lib/date-utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/auth-context";
 
 type Meal = {
   id: number;
@@ -211,14 +210,13 @@ function AddMealModal({ date }: { date: string }) {
   const [calories, setCalories] = useState("");
   const [description, setDescription] = useState("");
   const [isAiAnalyzed, setIsAiAnalyzed] = useState(false);
-  const [isEstimatingCalories, setIsEstimatingCalories] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const createMeal = useCreateMeal();
   const analyzeImage = useAnalyzeFoodImage();
+  const estimateCalories = useEstimateCalories();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { getToken } = useAuth();
 
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -245,33 +243,20 @@ function AddMealModal({ date }: { date: string }) {
     if (e.target) e.target.value = "";
   }, [analyzeImage, category, toast]);
 
-  const estimateCaloriesFromName = useCallback(async () => {
+  const estimateCaloriesFromName = useCallback(() => {
     if (!name.trim()) return;
-    setIsEstimatingCalories(true);
-    try {
-      const token = await getToken();
-      const res = await fetch("/api/ai/estimate-calories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ foodName: name.trim() }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.estimatedCalories > 0) {
-        setCalories(String(data.estimatedCalories));
-        if (data.description) setDescription(data.description);
-        setIsAiAnalyzed(true);
-        toast({ title: "Calorias estimadas pela IA", description: `${data.estimatedCalories} kcal — ${data.description}` });
-      }
-    } catch {
-      toast({ title: "Erro ao estimar calorias", variant: "destructive" });
-    } finally {
-      setIsEstimatingCalories(false);
-    }
-  }, [name, toast, getToken]);
+    estimateCalories.mutate({ foodName: name.trim() }, {
+      onSuccess: (data: any) => {
+        if (data?.estimatedCalories > 0) {
+          setCalories(String(data.estimatedCalories));
+          if (data.description) setDescription(data.description);
+          setIsAiAnalyzed(true);
+          toast({ title: "Calorias estimadas pela IA", description: `${data.estimatedCalories} kcal — ${data.description}` });
+        }
+      },
+      onError: () => toast({ title: "Erro ao estimar calorias", variant: "destructive" }),
+    });
+  }, [name, toast, estimateCalories]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -291,6 +276,7 @@ function AddMealModal({ date }: { date: string }) {
   };
 
   const isAnalyzing = analyzeImage.isPending;
+  const isEstimatingCalories = estimateCalories.isPending;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
@@ -351,39 +337,27 @@ function EditMealModal({ meal, date, onClose }: { meal: Meal; date: string; onCl
   const [name, setName] = useState(meal.name);
   const [calories, setCalories] = useState(String(meal.caloriesKcal));
   const [description, setDescription] = useState(meal.description ?? "");
-  const [isEstimatingCalories, setIsEstimatingCalories] = useState(false);
 
   const updateMeal = useUpdateMeal();
+  const estimateCalories = useEstimateCalories();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { getToken } = useAuth();
 
-  const estimateCaloriesFromName = useCallback(async () => {
+  const isEstimatingCalories = estimateCalories.isPending;
+
+  const estimateCaloriesFromName = useCallback(() => {
     if (!name.trim()) return;
-    setIsEstimatingCalories(true);
-    try {
-      const token = await getToken();
-      const res = await fetch("/api/ai/estimate-calories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ foodName: name.trim() }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.estimatedCalories > 0) {
-        setCalories(String(data.estimatedCalories));
-        if (data.description) setDescription(data.description);
-        toast({ title: "Calorias estimadas pela IA", description: `${data.estimatedCalories} kcal` });
-      }
-    } catch {
-      toast({ title: "Erro ao estimar calorias", variant: "destructive" });
-    } finally {
-      setIsEstimatingCalories(false);
-    }
-  }, [name, toast, getToken]);
+    estimateCalories.mutate({ foodName: name.trim() }, {
+      onSuccess: (data: any) => {
+        if (data?.estimatedCalories > 0) {
+          setCalories(String(data.estimatedCalories));
+          if (data.description) setDescription(data.description);
+          toast({ title: "Calorias estimadas pela IA", description: `${data.estimatedCalories} kcal` });
+        }
+      },
+      onError: () => toast({ title: "Erro ao estimar calorias", variant: "destructive" }),
+    });
+  }, [name, toast, estimateCalories]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

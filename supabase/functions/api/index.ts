@@ -92,7 +92,7 @@ api.post('/ai/analyze-food', async (c) => {
     return c.json(safeParseJSON(content))
   } catch (error: any) {
     console.error("Gemini Error in analyze-food:", error?.message || error)
-    return c.json({ error: "Erro ao analisar o alimento com IA. Tente novamente mais tarde.", details: error?.message || "Erro desconhecido" }, 500)
+    return c.json({ error: `[Gemini Error]: ${error?.message || "Erro desconhecido"}` }, 500)
   }
 })
 
@@ -118,7 +118,7 @@ api.post('/ai/estimate-calories', async (c) => {
     return c.json(safeParseJSON(content))
   } catch (error: any) {
     console.error("Gemini Error in estimate-calories:", error?.message || error)
-    return c.json({ error: "Erro ao estimar calorias com IA.", details: error?.message || "Erro desconhecido" }, 500)
+    return c.json({ error: `[Gemini Error]: ${error?.message || "Erro desconhecido"}` }, 500)
   }
 })
 
@@ -146,7 +146,7 @@ api.post('/ai/estimate-exercise-calories', async (c) => {
     return c.json(safeParseJSON(content))
   } catch (error: any) {
     console.error("Gemini Error in estimate-exercise-calories:", error?.message || error)
-    return c.json({ error: "Erro ao estimar calorias de exercício com IA.", details: error?.message || "Erro desconhecido" }, 500)
+    return c.json({ error: `[Gemini Error]: ${error?.message || "Erro desconhecido"}` }, 500)
   }
 })
 
